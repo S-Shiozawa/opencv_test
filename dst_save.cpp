@@ -1,0 +1,69 @@
+//cameracalibration.cpp	から出てくるxmlファイルを使って歪み補正した画像を保存
+//歪み除去したいフォルダ名を引数にとる
+
+#include <cv.h>
+#include <highgui.h>
+#include <string.h>
+int
+main (int argc, char *argv[])
+{ int num=0;
+  IplImage *src_img, *dst_img;
+  CvMat *intrinsic, *distortion; 
+  CvFileStorage *fs;
+  CvFileNode *param; 
+  
+  IplImage *small_img = cvCreateImage(cvSize(640,360),IPL_DEPTH_8U,1);
+
+char imstr[100];
+char imfol[100];
+char folname[100];  
+
+if(argv[1]==NULL){printf("歪みをとりたいフォルダを指定してください\n");return -1;}
+ 
+
+  // (1)補正対象となる画像の読み込み
+while(1){
+strcpy(imfol,argv[1]);
+strcpy(folname,argv[1]);
+sprintf(imstr,"/I2_%06d.png",num);     //読み込み画像ファイル名注意！
+strcat(imfol,imstr);
+//printf("%s\n",imfol);
+//printf("%s\n",folname);
+  if (argc < 2 || (src_img = cvLoadImage (imfol, CV_LOAD_IMAGE_GRAYSCALE)) == 0)//白黒化して取り込み（LIBVISO用に）
+	{printf("終了\n");   
+	return -1;}
+//初期化
+//  dst_img = cvCloneImage (src_img);
+ // gray_img = cvCloneImage (src_img);
+// (2)パラメータファイルの読み込み
+fs = cvOpenFileStorage ("camera.xml", 0, CV_STORAGE_READ);
+  param = cvGetFileNodeByName (fs, NULL, "intrinsic");
+  intrinsic = (CvMat *) cvRead (fs, param);
+  param = cvGetFileNodeByName (fs, NULL, "distortion");
+  distortion = (CvMat *) cvRead (fs, param);
+  cvReleaseFileStorage (&fs);
+   
+
+  // (3)歪み補正
+// cvUndistort2 (src_img, dst_img, intrinsic, distortion);
+cvResize(src_img, small_img);
+
+	char fname[1024];
+sprintf(fname, "./dst_img/%s",imfol); 	//dst_imgフォルダに新しい保存用フォルダを作る必要がある。
+   
+	printf("%s\n", fname);
+
+	
+	cvSaveImage(fname,small_img,NULL);   
+
+  cvReleaseImage (&src_img);
+  cvReleaseImage (&dst_img);
+  cvReleaseMat (&intrinsic);
+  cvReleaseMat (&distortion);
+num++;
+
+}
+
+  return 0;
+}
+
